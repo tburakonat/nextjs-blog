@@ -1,4 +1,6 @@
-export default function handler(req, res) {
+import { connectDatabase, insertDocument } from '../../helpers/db-utils';
+
+export default async function handler(req, res) {
 	switch (req.method) {
 		case 'POST':
 			const { email, name, message } = req.body;
@@ -12,7 +14,25 @@ export default function handler(req, res) {
 				name,
 				message,
 			};
-			console.log(newMessage);
+
+			let client;
+
+			try {
+				client = await connectDatabase();
+			} catch (error) {
+				res.status(500).json({ message: 'Connecting to the database failed!' });
+				return;
+			}
+
+			try {
+				await insertDocument(client, 'messages', newMessage);
+				client.close();
+			} catch (error) {
+				res.status(500).json({ message: 'Inserting data failed!' });
+				client.close();
+				return;
+			}
+
 			res.status(201).json({ message: 'Successfully stored message!', message: newMessage });
 			break;
 		default:
